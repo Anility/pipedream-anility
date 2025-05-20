@@ -506,12 +506,6 @@ export default {
       ] = constants.API.MAILBOX;
       return this.api(className).getMailThreads(folder, opt);
     },
-    getPersonFields(opts = {}) {
-      const [
-        className,
-      ] = constants.API.PERSON_FIELDS;
-      return this.api(className).getPersonFields(opts);
-    },
     async getUser(id) {
       const [
         className,
