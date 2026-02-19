@@ -4,7 +4,7 @@ export default {
   key: "anility-pipedrive-update-person",
   name: "Update Person (Anility)",
   description: "Updates an existing person's details in Pipedrive. See the Pipedrive API docs for People [here](https://developers.pipedrive.com/docs/api/v1/Persons#updatePerson)",
-  version: "0.0.1",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
