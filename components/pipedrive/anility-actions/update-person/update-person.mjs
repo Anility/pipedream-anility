@@ -105,10 +105,8 @@ export default {
       }
 
       if (Object.keys(updateData).length === 0) {
-        $.export("$summary", "No fields provided to update");
-        return {
-          message: "No fields provided to update",
-        };
+        $.export("$summary", "No fields to update, returning existing person data");
+        return await this.pipedriveApp.getPerson(personId);
       }
 
       const resp = await this.pipedriveApp.updatePerson({
