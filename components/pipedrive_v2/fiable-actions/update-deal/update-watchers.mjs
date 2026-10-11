@@ -1,10 +1,12 @@
+import errors from "../../common/errors.mjs";
+import fields from "../../common/fields.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-update-deal-watchers-v2",
   name: "Update Deal Watchers V2 (Fiable)",
   description: "Updates the watchers properties of a deal. See the Pipedrive API docs for Deals [here](https://developers.pipedrive.com/docs/api/v1/Deals#updateDeal)",
-  version: "0.0.1",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
@@ -54,32 +56,24 @@ export default {
       name,
       label,
     ) {
-      const { data: stages } = await this.pipedriveApp.getPersonFields();
-      const option = stages.find((stage) => stage.key === "label")
-        .options.find((option) => option.label.toLowerCase() === label.toLowerCase());
-
-      const labelValue = {};
-      if (option) {
-        labelValue["label"] = option.id;
-      }
+      const personFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getPersonFields);
 
       const searchResp = await this.pipedriveApp.searchPersons({
         term: anilityIdFieldValue,
         fields: "custom_fields",
         exact_match: true,
-        org_id: organizationId,
-        start: 0,
+        organization_id: organizationId,
         limit: 1,
       });
       if (searchResp.data.items.length === 0) {
-        const customFieldValue = {};
-        customFieldValue[anilityIdFieldKey] = anilityIdFieldValue;
         const resp = await this.pipedriveApp.addPerson({
           name,
           org_id: organizationId,
-          email,
-          ...customFieldValue,
-          ...labelValue,
+          emails: fields.contactList(email),
+          label_ids: fields.labelIds(personFields, label),
+          custom_fields: fields.customFields(personFields, {
+            [anilityIdFieldKey]: anilityIdFieldValue,
+          }),
         });
 
         return resp.data.id;
@@ -125,14 +119,14 @@ export default {
       }
       await this.pipedriveApp.updateDeal({
         dealId,
-        ...customField,
+        custom_fields: customField,
       });
 
       $.export("$summary", customField);
 
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to update deal";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to update deal"));
     }
   },
 };

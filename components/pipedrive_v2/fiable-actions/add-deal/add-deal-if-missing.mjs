@@ -1,10 +1,12 @@
+import errors from "../../common/errors.mjs";
+import fields from "../../common/fields.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-add-deal-v2",
   name: "Add Deal V2 (Fiable)",
   description: "Adds a new deal if missing. See the Pipedrive API docs for Deals [here](https://developers.pipedrive.com/docs/api/v1/Deals#addDeal)",
-  version: "0.0.1",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
@@ -72,12 +74,6 @@ export default {
       propDefinition: [
         pipedriveApp,
         "visibleTo",
-      ],
-    },
-    addTime: {
-      propDefinition: [
-        pipedriveApp,
-        "addTime",
       ],
     },
     pipelineId: {
@@ -165,7 +161,6 @@ export default {
       probability,
       lostReason,
       visibleTo,
-      addTime,
       pipelineId,
       anilityIdFieldKey,
       anilityIdFieldValue,
@@ -180,37 +175,23 @@ export default {
       label,
     } = this;
 
-    const { data: stages } = await this.pipedriveApp.getDealFields();
-    const option = stages.find((stage) => stage.key === "label")
-      .options.find((option) => option.label.toLowerCase() === label.toLowerCase());
-
-    let labelValue = {};
-    if (option) {
-      labelValue["label"] = [
-        option.id,
-      ];
-    }
-
     try {
+      const dealFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getDealFields);
+
       const searchResp = await this.pipedriveApp.searchDeals({
         term: anilityIdFieldValue,
         fields: "custom_fields",
         exact_match: true,
-        start: 0,
         limit: 1,
       });
       if (searchResp.data.items.length === 0) {
-        let customFieldValue = {};
-        customFieldValue[anilityIdFieldKey] = anilityIdFieldValue;
-        customFieldValue[anilityCustomerIdFieldKey] = anilityCustomerIdFieldValue;
-        customFieldValue[anilityOrderByIdFieldKey] = anilityOrderByIdFieldValue;
-        customFieldValue[anilityDelayRequestFieldKey] = anilityDelayRequestFieldValue;
-        customFieldValue[anilityExpiryDateFieldKey] = anilityExpiryDateFieldValue;
+        // v2 has no add_time for deals: a deal's creation time is always the
+        // time it's created (v1 let the workflow set it to the order date).
         const resp = await this.pipedriveApp.addDeal({
           title,
           value,
           currency,
-          user_id: userId,
+          owner_id: userId,
           person_id: personId,
           org_id: organizationId,
           stage_id: stageId,
@@ -218,10 +199,15 @@ export default {
           probability,
           lost_reason: lostReason,
           visible_to: visibleTo,
-          add_time: addTime,
           pipeline_id: pipelineId,
-          ...customFieldValue,
-          ...labelValue,
+          label_ids: fields.labelIds(dealFields, label),
+          custom_fields: fields.customFields(dealFields, {
+            [anilityIdFieldKey]: anilityIdFieldValue,
+            [anilityCustomerIdFieldKey]: anilityCustomerIdFieldValue,
+            [anilityOrderByIdFieldKey]: anilityOrderByIdFieldValue,
+            [anilityDelayRequestFieldKey]: anilityDelayRequestFieldValue,
+            [anilityExpiryDateFieldKey]: anilityExpiryDateFieldValue,
+          }),
         });
 
         $.export("$summary", "Successfully added deal");
@@ -236,8 +222,8 @@ export default {
       }
 
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to add deal";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to add deal"));
     }
   },
 };
