@@ -1,10 +1,12 @@
+import errors from "../../common/errors.mjs";
+import fields from "../../common/fields.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-add-person-v2",
   name: "Add Person V2 (Fiable)",
   description: "Adds a new person if missing. See the Pipedrive API docs for People [here](https://developers.pipedrive.com/docs/api/v1/Persons#addPerson)",
-  version: "0.0.1",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
@@ -31,13 +33,13 @@ export default {
     email: {
       type: "any",
       label: "Email",
-      description: "Email addresses (one or more) associated with the person, presented in the same manner as received by GET request of a person.",
+      description: "Email address(es) of the person: a single address, a list of addresses, or objects like `{ value, primary, label }`.",
       optional: true,
     },
     phone: {
       type: "any",
       label: "Phone",
-      description: "Phone numbers (one or more) associated with the person, presented in the same manner as received by GET request of a person.",
+      description: "Phone number(s) of the person: a single number, a list of numbers, or objects like `{ value, primary, label }`.",
       optional: true,
     },
     visibleTo: {
@@ -52,7 +54,7 @@ export default {
         pipedriveApp,
         "addTime",
       ],
-      description: "Optional creation date & time of the person in UTC. Requires admin user API token. Format: `YYYY-MM-DD HH:MM:SS`",
+      description: "Optional creation date & time of the person in UTC, in RFC 3339 format, e.g. `2024-07-01T05:46:33Z`. Requires admin user API token.",
     },
     anilityIdFieldKey: {
       propDefinition: [
@@ -87,39 +89,30 @@ export default {
     } = this;
 
     try {
-
-      const { data: stages } = await this.pipedriveApp.getPersonFields();
-      var option = stages.find((stage) => stage.key === "label")
-        .options.find((option) => option.label.toLowerCase() === label.toLowerCase());
-
-      var labelValue = {};
-      if (option) {
-        labelValue["label"] = option.id;
-      }
+      const personFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getPersonFields);
 
       const searchResp = await this.pipedriveApp.searchPersons({
         term: anilityIdFieldValue,
         fields: "custom_fields",
         exact_match: true,
-        org_id: organizationId,
-        start: 0,
+        organization_id: organizationId,
         limit: 1,
       });
 
       if (searchResp.data.items.length === 0) {
-        var customFieldValue = {};
-        customFieldValue[anilityIdFieldKey] = anilityIdFieldValue;
         const resp =
           await this.pipedriveApp.addPerson({
             name,
             owner_id: ownerId,
             org_id: organizationId,
-            email,
-            phone,
+            emails: fields.contactList(email),
+            phones: fields.contactList(phone),
             visible_to: visibleTo,
             add_time: addTime,
-            ...customFieldValue,
-            ...labelValue,
+            label_ids: fields.labelIds(personFields, label),
+            custom_fields: fields.customFields(personFields, {
+              [anilityIdFieldKey]: anilityIdFieldValue,
+            }),
           });
 
         $.export("$summary", "Successfully added person");
@@ -134,8 +127,8 @@ export default {
       }
 
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to add person";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to add person"));
     }
   },
 };
