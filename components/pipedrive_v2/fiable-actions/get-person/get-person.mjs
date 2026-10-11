@@ -1,11 +1,12 @@
+import errors from "../../common/errors.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-get-person-v2",
   name: "Get Person V2 (Fiable)",
   description:
-    "Returns the details of a person. Note that this also returns some additional fields which are not present when asking for all persons. Also note that custom fields appear as long hashes in the resulting data. These hashes can be mapped against the key value of personFields.",
-  version: "0.0.1",
+    "Returns the details of a person. Custom fields are returned under `custom_fields`, keyed by their field code (the long hash).",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
@@ -19,9 +20,8 @@ export default {
   async run({ $ }) {
     const { personId } = this;
 
-    const person = await this.pipedriveApp.getPerson(personId);
-
     try {
+      const person = await this.pipedriveApp.getPerson(personId);
 
       $.export(
         "$summary",
@@ -30,9 +30,8 @@ export default {
 
       return person;
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to get person";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to get person"));
     }
   },
 };
-
