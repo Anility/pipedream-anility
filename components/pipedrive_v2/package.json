@@ -1,0 +1,15 @@
+{
+  "name": "@pipedream/pipedrive_v2",
+  "version": "0.0.1",
+  "description": "Fiable Pipedrive components on Pipedrive API v2 (AM-11724)",
+  "main": "pipedrive_v2.app.mjs",
+  "private": true,
+  "keywords": [
+    "pipedream",
+    "pipedrive"
+  ],
+  "dependencies": {
+    "@pipedream/platform": "^3.4.0",
+    "pipedrive": "33.5.0"
+  }
+}
