@@ -1,10 +1,12 @@
+import errors from "../../common/errors.mjs";
+import fields from "../../common/fields.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-add-organization-if-missing-v2",
   name: "Add Organization V2 (Fiable)",
   description: "Adds a new organization. See the Pipedrive API docs for Organizations [here](https://developers.pipedrive.com/docs/api/v1/Organizations#addOrganization)",
-  version: "0.0.1",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
@@ -33,7 +35,7 @@ export default {
         pipedriveApp,
         "addTime",
       ],
-      description: "Optional creation date & time of the organization in UTC. Requires admin user API token. Format: `YYYY-MM-DD HH:MM:SS`",
+      description: "Optional creation date & time of the organization in UTC, in RFC 3339 format, e.g. `2024-07-01T05:46:33Z`. Requires admin user API token.",
     },
     anilityIdFieldKey: {
       propDefinition: [
@@ -65,32 +67,26 @@ export default {
     } = this;
 
     try {
-      const { data: stages } = await this.pipedriveApp.getOrganizationFields();
-      var option = stages.find((stage) => stage.key === "label")
-        .options.find((option) => option.label === label);
-
-      var labelValue = {};
-      if (option) {
-        labelValue["label"] = option.id;
-      }
+      const orgFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getOrganizationFields);
 
       const searchResp = await this.pipedriveApp.searchOrganization({
         term: anilityIdFieldValue,
         fields: "custom_fields",
         exact_match: true,
-        start: 0,
         limit: 1,
       });
       if (searchResp.data.items.length === 0) {
-        var customFieldValue = {};
-        customFieldValue[anilityIdFieldKey] = anilityIdFieldValue;
         const resp = await this.pipedriveApp.addOrganization({
           name,
           owner_id: ownerId,
           visible_to: visibleTo,
           add_time: addTime,
-          ...customFieldValue,
-          ...labelValue,
+          label_ids: fields.labelIds(orgFields, label, {
+            exact: true,
+          }),
+          custom_fields: fields.customFields(orgFields, {
+            [anilityIdFieldKey]: anilityIdFieldValue,
+          }),
         });
         $.export("$summary", "Successfully added organization");
         return resp;
@@ -103,8 +99,8 @@ export default {
       }
 
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to add organization";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to add organization"));
     }
   },
 };
