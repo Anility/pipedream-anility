@@ -1,11 +1,12 @@
 import constants from "../../common/constants.mjs";
+import errors from "../../common/errors.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
 export default {
   key: "fiable-pipedrive-search-deals-v2",
   name: "Search Deals V2 (Fiable)",
-  description: "Searches all deals by custom field. This endpoint is a wrapper of `/v1/itemSearch` with a narrower OAuth scope. Found organizations can be filtered by Organization ID. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Deals#searchDeals)",
-  version: "0.0.1",
+  description: "Searches all deals by title, notes and/or custom fields. Found deals can be filtered by Person ID and Organization ID. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Deals#searchDeals)",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -16,10 +17,10 @@ export default {
     },
     fields: {
       type: "string",
-      label: "Search fields",
-      description: "A comma-separated string array. The fields to perform the search from. Defaults to all of them. Only the following custom field types are searchable: address, custom_fields, notes, name",
+      label: "Search field",
+      description: "The field to perform the search from. Defaults to all of them. Only the following custom field types are searchable: address, varchar, text, varchar_auto, double, monetary and phone.",
       optional: true,
-      options: constants.FIELD_OPTIONS,
+      options: constants.DEAL_SEARCH_FIELD_OPTIONS,
     },
     exactMatch: {
       type: "boolean",
@@ -27,10 +28,10 @@ export default {
       description: "When enabled, only full exact matches against the given term are returned. It is not case sensitive.",
       optional: true,
     },
-    start: {
+    cursor: {
       propDefinition: [
         pipedriveApp,
-        "start",
+        "cursor",
       ],
     },
     limit: {
@@ -45,7 +46,7 @@ export default {
       term,
       fields,
       exactMatch,
-      start,
+      cursor,
       limit,
     } = this;
 
@@ -55,7 +56,7 @@ export default {
           term,
           fields,
           exact_match: exactMatch,
-          start,
+          cursor,
           limit,
         });
 
@@ -64,8 +65,8 @@ export default {
       return resp;
 
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to search deals";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to search deals"));
     }
   },
 };

@@ -34,6 +34,21 @@ const NUMERIC_BODY_FIELDS = [
   "value",
 ];
 
+// Pipedrive v2 only accepts these for deal search's `fields`
+const DEAL_SEARCH_FIELD_OPTIONS = [
+  "custom_fields",
+  "notes",
+  "title",
+];
+
+// Pipedrive v2 only accepts these for organization search's `fields`
+const ORGANIZATION_SEARCH_FIELD_OPTIONS = [
+  "address",
+  "custom_fields",
+  "notes",
+  "name",
+];
+
 // Pipedrive v2 rejects visible_to as a string
 const VISIBLE_TO_OPTIONS = [
   {
@@ -88,6 +103,8 @@ const FIELD = {
 export default {
   STATUS_OPTIONS,
   FIELD_OPTIONS,
+  DEAL_SEARCH_FIELD_OPTIONS,
+  ORGANIZATION_SEARCH_FIELD_OPTIONS,
   FIELDS_PAGE_LIMIT,
   NUMERIC_BODY_FIELDS,
   VISIBLE_TO_OPTIONS,
