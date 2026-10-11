@@ -1,15 +1,11 @@
-import pipedrive from "pipedrive@13.2.7";
+import { v2 } from "pipedrive@33.5.0";
 import constants from "./common/constants.mjs";
+import v1Client from "./common/v1-client.mjs";
 
 export default {
   type: "app",
   app: "pipedrive",
   propDefinitions: {
-    content: {
-      type: "string",
-      label: "Content",
-      description: "The content of the note in HTML format. Subject to sanitization on the back-end.",
-    },
     userId: {
       type: "integer",
       label: "User ID",
@@ -25,60 +21,22 @@ export default {
         }));
       },
     },
-    activityFilterId: {
-      type: "integer",
-      label: "Activity Filter ID",
-      description: "ID of the filter for activities to be used for filtering the activities.",
-      optional: true,
-      async options() {
-        const { data: filters } = await this.getFilters({
-          type: constants.FILTER_TYPE.ACTIVITY,
-        });
-        return filters.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: id,
-        }));
-      },
-    },
     personId: {
       type: "integer",
       label: "Person ID",
       description: "ID of the person this deal will be associated with",
       optional: true,
       async options({ prevContext }) {
-        const {
-          moreItemsInCollection,
-          start,
-        } = prevContext;
-
-        if (moreItemsInCollection === false) {
-          return [];
-        }
-
-        const {
-          data: persons,
-          additional_data: additionalData,
-        } = await this.getPersons({
-          start,
-          limit: constants.DEFAULT_PAGE_LIMIT,
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getPersons,
+          mapper: ({
+            id, name,
+          }) => ({
+            label: name,
+            value: id,
+          }),
         });
-
-        const options = persons.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: id,
-        }));
-
-        return {
-          options,
-          context: {
-            moreItemsInCollection: additionalData.pagination.more_items_in_collection,
-            start: additionalData.pagination.next_start,
-          },
-        };
       },
     },
     organizationId: {
@@ -87,56 +45,17 @@ export default {
       description: "ID of the organization this deal will be associated with",
       optional: true,
       async options({ prevContext }) {
-        const {
-          moreItemsInCollection,
-          start,
-        } = prevContext;
-
-        if (moreItemsInCollection === false) {
-          return [];
-        }
-
-        const {
-          data: organizations,
-          additional_data: additionalData,
-        } = await this.getOrganizations({
-          start,
-          limit: constants.DEFAULT_PAGE_LIMIT,
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getOrganizations,
+          mapper: ({
+            id, name,
+          }) => ({
+            label: name,
+            value: id,
+          }),
         });
-
-        const options = organizations.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: id,
-        }));
-
-        return {
-          options,
-          context: {
-            moreItemsInCollection: additionalData.pagination.more_items_in_collection,
-            start: additionalData.pagination.next_start,
-          },
-        };
       },
-    },
-    pinnedToDealFlag: {
-      type: "boolean",
-      label: "Pinned To Deal Flag",
-      description: "If set, the results are filtered by note to deal pinning state (deal_id is also required)",
-      default: false,
-    },
-    pinnedToOrgFlag: {
-      type: "boolean",
-      label: "Pinned To Organization Flag",
-      description: "If set, the results are filtered by note to organization pinning state (org_id is also required)",
-      default: false,
-    },
-    pinnedToPersonFlag: {
-      type: "boolean",
-      label: "Pinned To Person Flag",
-      description: "If set, the results are filtered by note to person pinning state (person_id is also required)",
-      default: false,
     },
     probability: {
       type: "integer",
@@ -151,7 +70,7 @@ export default {
       optional: true,
     },
     visibleTo: {
-      type: "string",
+      type: "integer",
       label: "Visible To",
       description: "Visibility of the deal. If omitted, visibility will be set to the default visibility setting of this item type for the authorized user.",
       optional: true,
@@ -160,7 +79,7 @@ export default {
     addTime: {
       type: "string",
       label: "Add Time",
-      description: "Optional creation date & time of the deal in UTC. Requires admin user API token. Format: `YYYY-MM-DD HH:MM:SS`",
+      description: "Optional creation date & time in UTC, in RFC 3339 format, e.g. `2024-07-01T05:46:33Z`. Requires admin user API token.",
       optional: true,
     },
     dealTitle: {
@@ -183,31 +102,37 @@ export default {
     stageId: {
       type: "integer",
       label: "Stage ID",
-      description: "ID of the stage this deal will be placed in a pipeline (note that you can't supply the ID of the pipeline as this will be assigned automatically based on `stage_id`). If omitted, the deal will be placed in the first stage of the default pipeline. Get the `stage_id` from [here](https://developers.pipedrive.com/docs/api/v1/#!/Stages/get_stages).",
+      description: "ID of the stage this deal will be placed in a pipeline (note that you can't supply the ID of the pipeline as this will be assigned automatically based on `stage_id`). If omitted, the deal will be placed in the first stage of the default pipeline.",
       optional: true,
-      async options() {
-        const { data: stages } = await this.getStages();
-        return stages.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: id,
-        }));
+      async options({ prevContext }) {
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getStages,
+          mapper: ({
+            id, name,
+          }) => ({
+            label: name,
+            value: id,
+          }),
+        });
       },
     },
     pipelineId: {
       type: "integer",
       label: "Pipeline ID",
-      description: "ID of the pipeline this deal will be placed in (note that you can't supply the ID of the pipeline as this will be assigned automatically based on `stage_id`). If omitted, the deal will be placed in the first stage of the default pipeline. Get the `stage_id` from [here](https://developers.pipedrive.com/docs/api/v1/#!/Stages/get_stages).",
+      description: "ID of the pipeline this deal will be placed in. If omitted, the deal will be placed in the first stage of the default pipeline.",
       optional: true,
-      async options() {
-        const { data: stages } = await this.getPipelines();
-        return stages.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: id,
-        }));
+      async options({ prevContext }) {
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getPipelines,
+          mapper: ({
+            id, name,
+          }) => ({
+            label: name,
+            value: id,
+          }),
+        });
       },
     },
     status: {
@@ -217,10 +142,10 @@ export default {
       optional: true,
       options: constants.STATUS_OPTIONS,
     },
-    start: {
-      type: "integer",
-      label: "Pagination start",
-      description: "Pagination start. Note that the pagination is based on main results and does not include related items when using `search_for_related_items` parameter.",
+    cursor: {
+      type: "string",
+      label: "Cursor",
+      description: "Pagination cursor. Use `additional_data.next_cursor` from a previous response to get the next page.",
       optional: true,
     },
     limit: {
@@ -235,37 +160,16 @@ export default {
       description: "ID of the deal this activity will be associated with",
       optional: true,
       async options({ prevContext }) {
-        const {
-          moreItemsInCollection,
-          start,
-        } = prevContext;
-
-        if (moreItemsInCollection === false) {
-          return [];
-        }
-
-        const {
-          data: deals,
-          additional_data: additionalData,
-        } = await this.getDeals({
-          start,
-          limit: constants.DEFAULT_PAGE_LIMIT,
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getDeals,
+          mapper: ({
+            id, title,
+          }) => ({
+            label: title,
+            value: id,
+          }),
         });
-
-        const options = deals?.map(({
-          id, title,
-        }) => ({
-          label: title,
-          value: id,
-        }));
-
-        return {
-          options,
-          context: {
-            moreItemsInCollection: additionalData.pagination.more_items_in_collection,
-            start: additionalData.pagination.next_start,
-          },
-        };
       },
     },
     orgCustomFieldKey: {
@@ -273,14 +177,13 @@ export default {
       label: "Custom Field Key",
       description: "Key of the custom field for organization in Pipedrive",
       optional: true,
-      async options() {
-        const { data: stages } = await this.getOrganizationFields();
-        return stages.map(({
-          key, name,
-        }) => ({
-          label: name,
-          value: key,
-        }));
+      async options({ prevContext }) {
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getOrganizationFields,
+          mapper: this.fieldOption,
+          limit: constants.FIELDS_PAGE_LIMIT,
+        });
       },
     },
     personCustomFieldKey: {
@@ -288,14 +191,13 @@ export default {
       label: "Custom Field Key",
       description: "Key of the custom field for person in Pipedrive",
       optional: true,
-      async options() {
-        const { data: stages } = await this.getPersonFields();
-        return stages.map(({
-          key, name,
-        }) => ({
-          label: name,
-          value: key,
-        }));
+      async options({ prevContext }) {
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getPersonFields,
+          mapper: this.fieldOption,
+          limit: constants.FIELDS_PAGE_LIMIT,
+        });
       },
     },
     dealCustomFieldKey: {
@@ -303,270 +205,174 @@ export default {
       label: "Anility Id Field Key",
       description: "Key of the custom field for deal in Pipedrive",
       optional: true,
-      async options() {
-        const { data: stages } = await this.getDealFields();
-        return stages.map(({
-          key, name,
-        }) => ({
-          label: name,
-          value: key,
-        }));
-      },
-    },
-    dealCustomFieldId: {
-      type: "string",
-      label: "Anility Id Field Id for deals",
-      description: "Id of the custom field for deal in Pipedrive",
-      optional: true,
-      async options() {
-        const { data: stages } = await this.getDealFields();
-        return stages.map(({
-          id, name,
-        }) => ({
-          label: name,
-          value: `${id}`,
-        }));
+      async options({ prevContext }) {
+        return this.paginateOptions({
+          prevContext,
+          resourceFn: this.getDealFields,
+          mapper: this.fieldOption,
+          limit: constants.FIELDS_PAGE_LIMIT,
+        });
       },
     },
   },
   methods: {
-    setupToken() {
-      const client = new pipedrive.ApiClient();
-      const oauth2 = client.authentications.oauth2;
-      oauth2.accessToken = this.$auth.oauth_access_token;
-      oauth2.refreshToken = this.$auth.oauth_refresh_token;
-      oauth2.clientId = this.$auth.oauth_client_id;
-      return client;
+    api(model) {
+      const config = new v2.Configuration({
+        accessToken: this.$auth.oauth_access_token,
+        basePath: this.$auth.api_domain
+          ? `${this.$auth.api_domain}/api/v2`
+          : undefined,
+      });
+      return new v2[model](config);
     },
-    api(className) {
-      const client = this.setupToken();
-      return new pipedrive[className](client);
+    fieldOption({
+      field_code: key, field_name: name,
+    }) {
+      return {
+        label: name,
+        value: key,
+      };
     },
-    buildOpts(property, opts) {
-      return pipedrive[property].constructFromObject(opts);
-    },
-    async addActivity(opts = {}) {
-      const [
-        className,
-        addProperty,
-      ] = constants.API.ACTIVITIES;
-      try {
-        return this.api(className).addActivity(this.buildOpts(addProperty, opts));
-      } catch (error) {
-        console.error(error);
-        throw new Error(error);
+    async paginateOptions({
+      prevContext, resourceFn, mapper, limit = constants.DEFAULT_PAGE_LIMIT,
+    }) {
+      if (prevContext?.cursor === false) {
+        return [];
       }
-    },
-    addDeal(opts = {}) {
-      const [
-        className,
-        addProperty,
-      ] = constants.API.DEALS;
-      return this.api(className).addDeal(this.buildOpts(addProperty, opts));
-    },
-    updateDeal(opts = {}) {
       const {
-        dealId,
-        ...otherOpts
-      } = opts;
-      const [
-        className,,
-        updateProperty,
-      ] = constants.API.DEALS;
-      return this.api(className).updateDeal(dealId, this.buildOpts(updateProperty, otherOpts));
+        data,
+        additional_data: additionalData,
+      } = await resourceFn.call(this, {
+        cursor: prevContext?.cursor,
+        limit,
+      });
+      return {
+        options: (data || []).map(mapper),
+        context: {
+          cursor: additionalData?.next_cursor || false,
+        },
+      };
     },
-    async addNote(opts = {}) {
-      const [
-        className,
-      ] = constants.API.NOTES;
-      return this.api(className).addNote(opts);
+    // v2 rejects ids sent as strings ("must be integer"), and workflow
+    // expressions like {{steps.x.$return_value.data.id}} can produce strings.
+    numericIds(data) {
+      const result = {
+        ...data,
+      };
+      for (const key of constants.NUMERIC_BODY_FIELDS) {
+        if (result[key] === "") {
+          // An empty expression result means "not set"
+          result[key] = undefined;
+        } else if (result[key] !== undefined && result[key] !== null) {
+          const number = Number(result[key]);
+          if (Number.isNaN(number)) {
+            throw new Error(`${key} must be a number, got "${result[key]}"`);
+          }
+          result[key] = number;
+        }
+      }
+      return result;
     },
-    async addOrganization(opts = {}) {
-      const [
-        className,
-        addProperty,
-      ] = constants.API.ORGANIZATIONS;
-      return this.api(className).addOrganization(this.buildOpts(addProperty, opts));
+    addDeal(data = {}) {
+      return this.api("DealsApi").addDeal({
+        AddDealRequest: this.numericIds(data),
+      });
     },
-    updateOrganization(opts = {}) {
-      const {
-        organizationId,
-        ...otherOpts
-      } = opts;
-      const [
-        className,
-        updateProperty,
-      ] = constants.API.ORGANIZATIONS;
-      return this.api(className)
-        .updateOrganization(organizationId, this.buildOpts(updateProperty, otherOpts));
-    },
-    addPerson(opts = {}) {
-      const [
-        className,
-      ] = constants.API.PERSONS;
-      return this.api(className).addPerson(opts);
-    },
-    searchPersons(opts = {}) {
-      const {
-        term,
-        ...otherOpts
-      } = opts;
-      const [
-        className,
-      ] = constants.API.PERSONS;
-      return this.api(className).searchPersons(term, otherOpts);
-    },
-    searchOrganization(opts = {}) {
-      const {
-        term,
-        ...otherOpts
-      } = opts;
-      const [
-        className,
-      ] = constants.API.ORGANIZATIONS;
-      return this.api(className).searchOrganization(term, otherOpts);
-    },
-    addFilter(opts = {}) {
-      const [
-        className,
-        addProperty,
-      ] = constants.API.FILTERS;
-      return this.api(className).addFilter(this.buildOpts(addProperty, opts));
-    },
-    updateFilter(opts = {}) {
-      const {
-        filterId,
-        ...otherOpts
-      } = opts;
-      const [
-        className,,
-        updateProperty,
-      ] = constants.API.FILTERS;
-      return this.api(className).updateFilter(filterId, this.buildOpts(updateProperty, otherOpts));
-    },
-    deleteFilter(filterId) {
-      const [
-        className,
-      ] = constants.API.FILTERS;
-      return this.api(className).deleteFilter(filterId);
+    updateDeal({
+      dealId, ...data
+    } = {}) {
+      return this.api("DealsApi").updateDeal({
+        id: dealId,
+        UpdateDealRequest: this.numericIds(data),
+      });
     },
     getDeals(opts = {}) {
-      const [
-        className,
-      ] = constants.API.DEALS;
-      return this.api(className).getDeals(opts);
+      return this.api("DealsApi").getDeals(opts);
     },
     searchDeals(opts = {}) {
-      const {
-        term,
-        ...otherOpts
-      } = opts;
-      const [
-        className,
-      ] = constants.API.DEALS;
-      return this.api(className).searchDeals(term, otherOpts);
+      return this.api("DealsApi").searchDeals(opts);
     },
-    getActivities(opts = {}) {
-      const [
-        className,
-      ] = constants.API.ACTIVITIES;
-      return this.api(className).getActivities(opts);
+    addOrganization(data = {}) {
+      return this.api("OrganizationsApi").addOrganization({
+        AddOrganizationRequest: this.numericIds(data),
+      });
     },
-    getActivityFields(opts = {}) {
-      const [
-        className,
-      ] = constants.API.ACTIVITY_FIELDS;
-      return this.api(className).getActivityFields(opts);
-    },
-    getPersons(opts = {}) {
-      const [
-        className,
-      ] = constants.API.PERSONS;
-      return this.api(className).getPersons(opts);
-    },
-    getPerson(id) {
-      const [
-        className,
-      ] = constants.API.PERSONS;
-      return this.api(className).getPerson(id);
-    },
-    getMailThreads(folder, opt = {}) {
-      const [
-        className,
-      ] = constants.API.MAILBOX;
-      return this.api(className).getMailThreads(folder, opt);
-    },
-    getPersonFields(opts = {}) {
-      const [
-        className,
-      ] = constants.API.PERSON_FIELDS;
-      return this.api(className).getPersonFields(opts);
-    },
-    async getLeads(opts) {
-      const [
-        className,
-      ] = constants.API.LEADS;
-      return this.api(className).getLeads(opts);
-    },
-    async getUser(id) {
-      const [
-        className,
-      ] = constants.API.USERS;
-      return this.api(className).getUser(id);
-    },
-    async getUsers(opts) {
-      const [
-        className,
-      ] = constants.API.USERS;
-      return this.api(className).getUsers(opts);
-    },
-    async getFilters(opts) {
-      const [
-        className,
-      ] = constants.API.FILTERS;
-      return this.api(className).getFilters(opts);
-    },
-    async getFilter(filterId) {
-      const [
-        className,
-      ] = constants.API.FILTERS;
-      return this.api(className).getFilter(filterId);
-    },
-    getActivityTypes(opts) {
-      const [
-        className,
-      ] = constants.API.ACTIVITY_TYPES;
-      return this.api(className).getActivityTypes(opts);
+    updateOrganization({
+      organizationId, ...data
+    } = {}) {
+      return this.api("OrganizationsApi").updateOrganization({
+        id: organizationId,
+        UpdateOrganizationRequest: this.numericIds(data),
+      });
     },
     getOrganizations(opts = {}) {
-      const [
-        className,
-      ] = constants.API.ORGANIZATIONS;
-      return this.api(className).getOrganizations(opts);
+      return this.api("OrganizationsApi").getOrganizations(opts);
     },
-    getStages(opts) {
-      const [
-        className,
-      ] = constants.API.STAGES;
-      return this.api(className).getStages(opts);
+    searchOrganization(opts = {}) {
+      return this.api("OrganizationsApi").searchOrganization(opts);
     },
-    getPipelines(opts) {
-      const [
-        className,
-      ] = constants.API.PIPELINES;
-      return this.api(className).getPipelines(opts);
+    addPerson(data = {}) {
+      return this.api("PersonsApi").addPerson({
+        AddPersonRequest: this.numericIds(data),
+      });
+    },
+    getPerson(id) {
+      return this.api("PersonsApi").getPerson({
+        id,
+      });
+    },
+    getPersons(opts = {}) {
+      return this.api("PersonsApi").getPersons(opts);
+    },
+    searchPersons(opts = {}) {
+      return this.api("PersonsApi").searchPersons(opts);
+    },
+    getActivities(opts = {}) {
+      return this.api("ActivitiesApi").getActivities(opts);
+    },
+    getStages(opts = {}) {
+      return this.api("StagesApi").getStages(opts);
+    },
+    getPipelines(opts = {}) {
+      return this.api("PipelinesApi").getPipelines(opts);
     },
     getDealFields(opts = {}) {
-      const [
-        className,
-      ] = constants.API.DEAL_FIELDS;
-      return this.api(className).getDealFields(opts);
+      return this.api("DealFieldsApi").getDealFields(opts);
+    },
+    getPersonFields(opts = {}) {
+      return this.api("PersonFieldsApi").getPersonFields(opts);
     },
     getOrganizationFields(opts = {}) {
-      const [
-        className,
-      ] = constants.API.ORGANIZATION_FIELDS;
-      return this.api(className).getOrganizationFields(opts);
+      return this.api("OrganizationFieldsApi").getOrganizationFields(opts);
+    },
+    getActivityFields(opts = {}) {
+      return this.api("ActivityFieldsApi").getActivityFields(opts);
+    },
+    // Pipedrive v1 only; see common/v1-client.mjs
+    getUser(id) {
+      return v1Client.getUser(this.$auth, id);
+    },
+    getUsers() {
+      return v1Client.getUsers(this.$auth);
+    },
+    getMailThreads(folder, opts = {}) {
+      return v1Client.getMailThreads(this.$auth, {
+        folder,
+        ...opts,
+      });
+    },
+    // Every field definition for a resource (deal, person, organization),
+    // following v2's cursor pagination. Used to convert custom field values.
+    async getAllFields(resourceFn) {
+      const fields = [];
+      for await (const field of this.getResourcesStream({
+        resourceFn,
+        limit: constants.FIELDS_PAGE_LIMIT,
+        max: Infinity,
+      })) {
+        fields.push(field);
+      }
+      return fields;
     },
     async *getResourcesStream({
       resourceFn,
@@ -574,19 +380,19 @@ export default {
       limit = constants.DEFAULT_PAGE_LIMIT,
       max = constants.DEFAULT_MAX_ITEMS,
     }) {
-      let start = 0;
+      let cursor;
       let resourcesCount = 0;
 
       while (true) {
         const response =
-          await resourceFn({
+          await resourceFn.call(this, {
             ...resourceFnArgs,
             limit,
-            start,
+            cursor,
           });
 
         const nextResources = response?.data || [];
-        start = response?.additional_data?.pagination?.next_start;
+        cursor = response?.additional_data?.next_cursor;
 
         if (!nextResources.length) {
           console.log("No more records to fetch.");
@@ -598,7 +404,7 @@ export default {
           yield resource;
         }
 
-        if (!start || resourcesCount >= max) {
+        if (!cursor || resourcesCount >= max) {
           return;
         }
       }

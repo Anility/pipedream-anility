@@ -20,14 +20,29 @@ const FIELD_OPTIONS = [
   "name",
 ];
 
+const FIELDS_PAGE_LIMIT = 500; // max page size of the v2 Fields APIs
+
+// Request body fields that v2 requires as numbers
+const NUMERIC_BODY_FIELDS = [
+  "owner_id",
+  "person_id",
+  "org_id",
+  "pipeline_id",
+  "stage_id",
+  "visible_to",
+  "probability",
+  "value",
+];
+
+// Pipedrive v2 rejects visible_to as a string
 const VISIBLE_TO_OPTIONS = [
   {
     label: "Owner & followers (private)",
-    value: "1",
+    value: 1,
   },
   {
     label: "Entire company (shared)",
-    value: "3",
+    value: 3,
   },
 ];
 
@@ -64,127 +79,6 @@ const EVENT_ACTION = {
   DELETED: "deleted",
 };
 
-const API = {
-  WEBHOOKS: [
-    "WebhooksApi",
-    "AddWebhookRequest",
-  ],
-  USERS: [
-    "UsersApi",
-  ],
-  USER_SETTINGS: [
-    "UserSettingsApi",
-  ],
-  USER_CONNECTIONS: [
-    "UserConnectionsApi",
-  ],
-  TEAMS: [
-    "TeamsApi",
-  ],
-  SUBSCRIPTIONS: [
-    "SubscriptionsApi",
-  ],
-  STAGES: [
-    "StagesApi",
-  ],
-  ROLES: [
-    "RolesApi",
-  ],
-  RECENTS: [
-    "RecentsApi",
-  ],
-  PRODUCTS: [
-    "ProductsApi",
-  ],
-  PRODUCT_FIELDS: [
-    "ProductFieldsApi",
-  ],
-  PIPELINES: [
-    "PipelinesApi",
-  ],
-  PERSONS: [
-    "PersonsApi",
-    "NewPerson",
-    "BasicPerson",
-  ],
-  PERSON_FIELDS: [
-    "PersonFieldsApi",
-  ],
-  PERMISSION_SETS: [
-    "PermissionSetsApi",
-  ],
-  ORGANIZATIONS: [
-    "OrganizationsApi",
-    "NewOrganization",
-  ],
-  ORGANIZATION_RELATIONSHIPS: [
-    "OrganizationRelationshipsApi",
-  ],
-  ORGANIZATION_FIELDS: [
-    "OrganizationFieldsApi",
-  ],
-  NOTES: [
-    "NotesApi",
-  ],
-  NOTE_FIELDS: [
-    "NoteFieldsApi",
-  ],
-  MAILBOX: [
-    "MailboxApi",
-  ],
-  LEADS: [
-    "LeadsApi",
-  ],
-  LEAD_SOURCES: [
-    "LeadSourcesApi",
-  ],
-  LEAD_LABELS: [
-    "LeadLabelsApi",
-  ],
-  ITEM_SEARCH: [
-    "ItemSearchApi",
-  ],
-  GOALS: [
-    "GoalsApi",
-  ],
-  GLOBAL_MESSAGES: [
-    "GlobalMessagesApi",
-  ],
-  FILTERS: [
-    "FiltersApi",
-    "AddFilterRequest",
-    "UpdateFilterRequest",
-  ],
-  FILES: [
-    "FilesApi",
-  ],
-  DEALS: [
-    "DealsApi",
-    "NewDeal",
-    "UpdateDealRequest",
-  ],
-  DEAL_FIELDS: [
-    "DealFieldsApi",
-  ],
-  CURRENCIES: [
-    "CurrenciesApi",
-  ],
-  CALL_LOGS: [
-    "CallLogsApi",
-  ],
-  ACTIVITY_TYPES: [
-    "ActivityTypesApi",
-  ],
-  ACTIVITY_FIELDS: [
-    "ActivityFieldsApi",
-  ],
-  ACTIVITIES: [
-    "ActivitiesApi",
-    "ActivityPostObject",
-    "ActivityPutObject",
-  ],
-};
-
 const FIELD = {
   ADD_TIME: "add_time",
   UPDATE_TIME: "update_time",
@@ -194,6 +88,8 @@ const FIELD = {
 export default {
   STATUS_OPTIONS,
   FIELD_OPTIONS,
+  FIELDS_PAGE_LIMIT,
+  NUMERIC_BODY_FIELDS,
   VISIBLE_TO_OPTIONS,
   INCLUDE_FIELDS_OPTIONS,
   LAST_RESOURCE_PROPERTY,
@@ -202,7 +98,6 @@ export default {
   FIELD_ID,
   EVENT_OBJECT,
   EVENT_ACTION,
-  API,
   DEFAULT_PAGE_LIMIT,
   DEFAULT_MAX_ITEMS,
   FIELD,
