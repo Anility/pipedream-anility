@@ -1,45 +1,35 @@
-import constants from "../../common/constants.mjs";
+import errors from "../../common/errors.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
+// v1 had no way to filter activities by deal inline, so the old action rewrote
+// a shared Pipedrive filter (by the deal's Anility Id custom field) on every run.
+// v2 filters by deal_id directly: find the deal by its Anility Id, then fetch
+// its activities. No filter is created or changed.
 export default {
   key: "fiable-pipedrive-get-activities-v2",
   name: "Get Activities V2 (Fiable)",
   description:
-    "Activities are appointments/tasks/events on a calendar that can be associated with a deal, a lead, a person and an organization. Activities can be of different type (such as call, meeting, lunch or a custom type - see ActivityTypes object) and can be assigned to a particular user. Note that activities can also be created without a specific date/time. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Activities#getActivities)",
-  version: "0.0.1",
+    "Returns the activities of the deal with the given Anility Id. Activities are appointments/tasks/events on a calendar that can be associated with a deal, a lead, a person and an organization. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Activities#getActivities)",
+  version: "0.0.2",
   type: "action",
   props: {
     pipedriveApp,
-    dealCustomFieldId: {
-      propDefinition: [
-        pipedriveApp,
-        "dealCustomFieldId",
-      ],
-    },
     anilityIdFieldValue: {
       type: "string",
       label: "AnilityId field value",
-      description: "Anility Id custom field value in Pipedrive",
+      description: "Anility Id custom field value of the deal in Pipedrive",
     },
     userId: {
       propDefinition: [
         pipedriveApp,
         "userId",
       ],
-      default: 0,
+      description: "Only return activities owned by this user. If omitted, activities of all users are returned.",
     },
-    activityFilterId: {
+    cursor: {
       propDefinition: [
         pipedriveApp,
-        "activityFilterId",
-      ],
-      description: "Caution: This filter will be updated with new conditions!",
-      optional: false,
-    },
-    start: {
-      propDefinition: [
-        pipedriveApp,
-        "start",
+        "cursor",
       ],
     },
     limit: {
@@ -49,80 +39,39 @@ export default {
       ],
     },
   },
-
-  methods: {
-    getFieldsFn() {
-      return this.pipedriveApp.getActivityFields;
-    },
-    getFieldKey() {
-      return constants.FIELD.MARKED_AS_DONE_TIME;
-    },
-    async fetchFieldId() {
-      const getFields = this.getFieldsFn();
-      const { data: fields } = await getFields();
-      const field = fields.find(({ key }) => key === this.getFieldKey());
-
-      return field.id;
-    },
-    getConditions({ additionalConditions = [] } = {}) {
-      return {
-        glue: "and",
-        conditions: [
-          {
-            glue: "or",
-            conditions: additionalConditions,
-          },
-        ],
-      };
-    },
-    getFilterArgs({
-      dealCustomFieldId,
-      anilityIdFieldValue,
-    } = {}) {
-      return {
-        type: constants.FILTER_TYPE.ACTIVITY,
-        name: "Pipedream: Activities done during today or later",
-        conditions: this.getConditions({
-          additionalConditions: [
-            {
-              object: constants.EVENT_OBJECT.DEAL,
-              field_id: dealCustomFieldId,
-              operator: "=",
-              value: anilityIdFieldValue,
-              extra_value: null,
-            },
-          ],
-        }),
-      };
-    },
-  },
   async run({ $ }) {
     const {
-      userId,
-      dealCustomFieldId,
       anilityIdFieldValue,
-      activityFilterId,
-      start,
+      userId,
+      cursor,
       limit,
     } = this;
 
     try {
-      //const fieldId = await this.fetchFieldId();
-
-      const args = this.getFilterArgs({
-        dealCustomFieldId,
-        anilityIdFieldValue,
-        //fieldId,
+      const searchResp = await this.pipedriveApp.searchDeals({
+        term: anilityIdFieldValue,
+        fields: "custom_fields",
+        exact_match: true,
+        limit: 1,
       });
+      const deal = searchResp.data?.items?.[0]?.item;
 
-      await this.pipedriveApp.updateFilter({
-        filterId: activityFilterId,
-        ...args,
-      });
+      if (!deal) {
+        $.export("$summary", "Deal does not exist");
+        return {
+          success: true,
+          data: [],
+          additional_data: {
+            next_cursor: null,
+          },
+        };
+      }
+
       const resp = await this.pipedriveApp.getActivities({
-        userId,
-        filterId: activityFilterId,
-        start,
+        deal_id: deal.id,
+        // v1 treated user_id 0 as "all users"; v2 returns all users' when omitted
+        owner_id: userId || undefined,
+        cursor,
         limit,
       });
 
@@ -133,8 +82,8 @@ export default {
 
       return resp;
     } catch (error) {
-      console.error(error.context?.body || error);
-      throw error.context?.body?.error || "Failed to get activities";
+      console.error(error);
+      throw new Error(errors.message(error, "Failed to get activities"));
     }
   },
 };
