@@ -1,3 +1,4 @@
+import constants from "../../common/constants.mjs";
 import errors from "../../common/errors.mjs";
 import pipedriveApp from "../../pipedrive_v2.app.mjs";
 
@@ -5,15 +6,24 @@ import pipedriveApp from "../../pipedrive_v2.app.mjs";
 // a shared Pipedrive filter (by the deal's Anility Id custom field) on every run.
 // v2 filters by deal_id directly: find the deal by its Anility Id, then fetch
 // its activities. No filter is created or changed.
+// v2 search can't target one custom field, so each match is checked against
+// the Anility Id field itself, as v1's filter did.
 export default {
   key: "fiable-pipedrive-get-activities-v2",
   name: "Get Activities V2 (Fiable)",
   description:
     "Returns the activities of the deal with the given Anility Id. Activities are appointments/tasks/events on a calendar that can be associated with a deal, a lead, a person and an organization. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Activities#getActivities)",
-  version: "0.0.3",
+  version: "0.0.4",
   type: "action",
   props: {
     pipedriveApp,
+    anilityIdFieldKey: {
+      propDefinition: [
+        pipedriveApp,
+        "dealCustomFieldKey",
+      ],
+      description: "Anility Id custom field of the deal in Pipedrive",
+    },
     anilityIdFieldValue: {
       type: "string",
       label: "AnilityId field value",
@@ -41,6 +51,7 @@ export default {
   },
   async run({ $ }) {
     const {
+      anilityIdFieldKey,
       anilityIdFieldValue,
       userId,
       cursor,
@@ -52,9 +63,18 @@ export default {
         term: anilityIdFieldValue,
         fields: "custom_fields",
         exact_match: true,
-        limit: 1,
+        limit: constants.DEFAULT_PAGE_LIMIT,
       });
-      const deal = searchResp.data?.items?.[0]?.item;
+      const ids = (searchResp.data?.items || []).map(({ item }) => item.id);
+      const deals = ids.length
+        ? (await this.pipedriveApp.getDeals({
+          ids: ids.join(","),
+          custom_fields: anilityIdFieldKey,
+        })).data
+        : [];
+      const deal = deals.find(({ custom_fields: customFields }) =>
+        String(customFields?.[anilityIdFieldKey] ?? "").toLowerCase()
+          === String(anilityIdFieldValue).toLowerCase());
 
       if (!deal) {
         $.export("$summary", "Deal does not exist");
