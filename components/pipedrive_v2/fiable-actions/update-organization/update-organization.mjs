@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-update-organization-v2",
   name: "Update Organization V2 (Fiable)",
   description: "Updates a custom field of the organization with the given Anility Id. See the Pipedrive API docs for Organizations [here](https://developers.pipedrive.com/docs/api/v1/Organizations#updateOrganization)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -47,7 +47,8 @@ export default {
         return searchResp;
       }
       else {
-        const orgFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getOrganizationFields);
+        const orgFields = await this.pipedriveApp
+          .getAllFields(this.pipedriveApp.getOrganizationFields);
         await this.pipedriveApp.updateOrganization({
           organizationId: searchResp.data.items[0].item.id,
           custom_fields: fields.customFields(orgFields, {
@@ -61,7 +62,7 @@ export default {
       }
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to update organization"));
     }
   },

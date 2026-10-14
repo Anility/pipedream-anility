@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-update-deal-watchers-v2",
   name: "Update Deal Watchers V2 (Fiable)",
   description: "Updates the watchers properties of a deal. See the Pipedrive API docs for Deals [here](https://developers.pipedrive.com/docs/api/v1/Deals#updateDeal)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -125,7 +125,7 @@ export default {
       $.export("$summary", customField);
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to update deal"));
     }
   },

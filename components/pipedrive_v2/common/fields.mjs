@@ -16,6 +16,10 @@ const NUMERIC_TYPES = [
 ];
 
 function toNumber(field, value) {
+  // A blank value clears the field, like an empty one (Number("  ") would be 0)
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
   const number = Number(value);
   if (Number.isNaN(number)) {
     throw new Error(`"${value}" is not a number, which ${field.field_name} requires`);
@@ -23,17 +27,18 @@ function toNumber(field, value) {
   return number;
 }
 
+// Matches the option label first, so a label like "2024" isn't mistaken for an id
 function toOptionId(field, value) {
   const text = String(value).trim();
+  const option = (field.options || [])
+    .find(({ label }) => String(label).toLowerCase() === text.toLowerCase());
+  if (option) {
+    return option.id;
+  }
   if (/^\d+$/.test(text)) {
     return Number(text);
   }
-  const option = (field.options || [])
-    .find(({ label }) => String(label).toLowerCase() === text.toLowerCase());
-  if (!option) {
-    throw new Error(`"${value}" is not an option of ${field.field_name}`);
-  }
-  return option.id;
+  throw new Error(`"${value}" is not an option of ${field.field_name}`);
 }
 
 function toFieldValue(field, value) {
@@ -57,7 +62,10 @@ function toFieldValue(field, value) {
     const values = Array.isArray(value)
       ? value
       : String(value).split(",");
-    return values.map((v) => toOptionId(field, v));
+    // Ignore empty fragments, e.g. from a trailing comma
+    return values
+      .filter((v) => String(v).trim() !== "")
+      .map((v) => toOptionId(field, v));
   }
   if (field.field_type === "address" && typeof value !== "object") {
     return {
@@ -124,7 +132,10 @@ export default {
         value,
       ];
     const list = items
-      .filter((item) => item !== undefined && item !== null && item !== "")
+      // Skip empty entries, including objects without a value
+      .filter((item) => (typeof item === "object" && item !== null
+        ? item.value !== undefined && item.value !== null && item.value !== ""
+        : item !== undefined && item !== null && item !== ""))
       .map((item, i) => (typeof item === "object"
         ? {
           value: String(item.value),

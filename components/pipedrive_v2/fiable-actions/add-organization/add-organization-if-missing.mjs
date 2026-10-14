@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-add-organization-if-missing-v2",
   name: "Add Organization V2 (Fiable)",
   description: "Adds a new organization. See the Pipedrive API docs for Organizations [here](https://developers.pipedrive.com/docs/api/v1/Organizations#addOrganization)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -67,7 +67,8 @@ export default {
     } = this;
 
     try {
-      const orgFields = await this.pipedriveApp.getAllFields(this.pipedriveApp.getOrganizationFields);
+      const orgFields = await this.pipedriveApp
+        .getAllFields(this.pipedriveApp.getOrganizationFields);
 
       const searchResp = await this.pipedriveApp.searchOrganization({
         term: anilityIdFieldValue,
@@ -99,7 +100,7 @@ export default {
       }
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to add organization"));
     }
   },

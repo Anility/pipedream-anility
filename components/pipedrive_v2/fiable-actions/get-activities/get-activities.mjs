@@ -10,7 +10,7 @@ export default {
   name: "Get Activities V2 (Fiable)",
   description:
     "Returns the activities of the deal with the given Anility Id. Activities are appointments/tasks/events on a calendar that can be associated with a deal, a lead, a person and an organization. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Activities#getActivities)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -82,7 +82,7 @@ export default {
 
       return resp;
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to get activities"));
     }
   },

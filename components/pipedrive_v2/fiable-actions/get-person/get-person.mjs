@@ -6,7 +6,7 @@ export default {
   name: "Get Person V2 (Fiable)",
   description:
     "Returns the details of a person. Custom fields are returned under `custom_fields`, keyed by their field code (the long hash).",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -30,7 +30,7 @@ export default {
 
       return person;
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to get person"));
     }
   },

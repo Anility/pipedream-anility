@@ -5,7 +5,7 @@ export default {
   key: "fiable-pipedrive-get-user-v2",
   name: "Get User V2 (Fiable)",
   description: "Returns data about a specific user within the company.",
-  version: "0.0.3",
+  version: "0.0.4",
   type: "action",
   props: {
     pipedriveApp,
@@ -26,7 +26,7 @@ export default {
 
       return user;
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to get user"));
     }
   },

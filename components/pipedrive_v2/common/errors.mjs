@@ -9,4 +9,11 @@ export default {
     }
     return error?.message || fallback;
   },
+  // Never log the raw axios error: its config holds the request headers,
+  // including the bearer token.
+  log(error) {
+    console.error(error?.error
+      ? error
+      : error?.message ?? error);
+  },
 };

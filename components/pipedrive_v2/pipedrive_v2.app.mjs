@@ -260,8 +260,8 @@ export default {
         ...data,
       };
       for (const key of constants.NUMERIC_BODY_FIELDS) {
-        if (result[key] === "") {
-          // An empty expression result means "not set"
+        if (typeof result[key] === "string" && result[key].trim() === "") {
+          // An empty or blank expression result means "not set"
           result[key] = undefined;
         } else if (result[key] !== undefined && result[key] !== null) {
           const number = Number(result[key]);

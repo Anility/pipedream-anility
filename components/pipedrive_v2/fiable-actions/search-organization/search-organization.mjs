@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-search-organizations-v2",
   name: "Search Organizations V2 (Fiable)",
   description: "Searches all organizations by name, address, notes and/or custom fields. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Organizations#searchOrganization)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -65,7 +65,7 @@ export default {
       return resp;
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to search organizations"));
     }
   },

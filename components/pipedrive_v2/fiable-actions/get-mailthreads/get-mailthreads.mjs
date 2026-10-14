@@ -8,7 +8,7 @@ export default {
   name: "Get Mail Threads V2 (Fiable)",
   description:
     "Returns mail threads in a specified folder ordered by the most recent message within.",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -45,7 +45,7 @@ export default {
 
       return threads;
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to get mail threads"));
     }
   },

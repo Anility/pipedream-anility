@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-search-deals-v2",
   name: "Search Deals V2 (Fiable)",
   description: "Searches all deals by title, notes and/or custom fields. Found deals can be filtered by Person ID and Organization ID. See the Pipedrive API docs [here](https://developers.pipedrive.com/docs/api/v1/Deals#searchDeals)",
-  version: "0.0.3",
+  version: "0.0.4",
   type: "action",
   props: {
     pipedriveApp,
@@ -65,7 +65,7 @@ export default {
       return resp;
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to search deals"));
     }
   },

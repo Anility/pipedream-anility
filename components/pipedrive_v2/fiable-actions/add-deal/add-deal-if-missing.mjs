@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-add-deal-v2",
   name: "Add Deal V2 (Fiable)",
   description: "Adds a new deal if missing. See the Pipedrive API docs for Deals [here](https://developers.pipedrive.com/docs/api/v1/Deals#addDeal)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -222,7 +222,7 @@ export default {
       }
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to add deal"));
     }
   },

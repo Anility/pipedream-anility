@@ -6,7 +6,7 @@ export default {
   key: "fiable-pipedrive-update-deal-v2",
   name: "Update Deal V2 (Fiable)",
   description: "Updates the properties of a deal. With optional custom field. See the Pipedrive API docs for Deals [here](https://developers.pipedrive.com/docs/api/v1/Deals#updateDeal)",
-  version: "0.0.2",
+  version: "0.0.3",
   type: "action",
   props: {
     pipedriveApp,
@@ -150,7 +150,7 @@ export default {
       return resp;
 
     } catch (error) {
-      console.error(error);
+      errors.log(error);
       throw new Error(errors.message(error, "Failed to update deal"));
     }
   },
