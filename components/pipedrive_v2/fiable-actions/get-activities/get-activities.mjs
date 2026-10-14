@@ -23,6 +23,7 @@ export default {
         "dealCustomFieldKey",
       ],
       description: "Anility Id custom field of the deal in Pipedrive",
+      optional: false,
     },
     anilityIdFieldValue: {
       type: "string",
